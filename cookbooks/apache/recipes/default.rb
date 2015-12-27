@@ -6,8 +6,13 @@
 #
 # All rights reserved - Do Not Redistribute
 #
-package "httpd" do
-        action :install
+if node["platform"] == "ubuntu"
+       execute "apt-get update -y" do
+       end
+end
+
+package "apache2" do
+        package_name node["apache"]["package"]
 end
 
 node["apache"]["sites"].each do |sitename, data|
@@ -18,7 +23,14 @@ node["apache"]["sites"].each do |sitename, data|
         recursive true
    end
 
-template "/etc/httpd/conf.d/#{sitename}.conf" do
+if node["platform"] == "ubuntu"
+    template_location = "/etc/apache2/sites-enabled/#{sitename}.conf"
+elsif node["platform"] == "centos"
+    template_location = "/etc/httpd/conf.d/#{sitename}.conf"
+end
+    
+
+template template_location do
    source "vhost.erb"
    mode "0644" 
    variables(
@@ -54,9 +66,10 @@ execute "rm etc/httpd/conf.d/README" do
 end
 
 service "httpd" do
+        service_name node["apache"]["package"]
         action [:enable, :start]
 end
 
-include_recipe "php::default"
+# include_recipe "php::default"
 
 
